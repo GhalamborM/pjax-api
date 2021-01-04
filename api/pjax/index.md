@@ -34,7 +34,7 @@ new Pjax({
 
 ## #assign(url: string): boolean
 
-Go to url.
+Go to URL.
 
 The return type means the request is accepted or not. In other words, in progress or not.
 The same shall apply hereinafter.
@@ -45,7 +45,7 @@ new Pjax({}).assign('/');
 
 ## #replace(url: string): boolean
 
-Go to url with replacing.
+Go to URL with replacing.
 
 ```ts
 new Pjax({}).replace('/');
@@ -53,7 +53,7 @@ new Pjax({}).replace('/');
 
 ## .assign(url: string, config: Config): boolean
 
-Go to url.
+Go to URL.
 
 ```ts
 Pjax.assign('/', {});
@@ -61,8 +61,40 @@ Pjax.assign('/', {});
 
 ## .replace(url: string, config: Config): boolean
 
-Go to url with replacing.
+Go to URL with replacing.
 
 ```ts
 Pjax.replace('/', {});
+```
+
+## .sync(isPjaxPage?: boolean): void
+
+Cancel the current page transition and sync the internal status.
+
+You **MUST** call Pjax.sync after calling history.pushState and history.replaceState.
+
+```ts
+history.pushState(null, 'title', '/path');
+Pjax.sync();
+```
+
+```ts
+history.replaceState(null, 'title', '/path');
+Pjax.sync(true);
+```
+
+## .pushURL(url: string, title: string, state: any = null): void
+
+The alias of history.pushState and Pjax.sync.
+
+```ts
+Pjax.pushURL('/path', 'title');
+```
+
+## .replaceURL(url: string, title: string, state: any = history.state): void
+
+The alias of history.replaceState and Pjax.sync.
+
+```ts
+Pjax.replaceURL('/path', 'title');
 ```
