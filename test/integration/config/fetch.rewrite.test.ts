@@ -1,4 +1,4 @@
-import { Pjax } from '../../../index';
+import { Pjax, FakeXMLHttpRequest } from '../../../index';
 import { route as router } from '../../../src/layer/interface/service/router';
 import { parse } from '../../../src/lib/html';
 import { once } from 'typed-dom';
@@ -8,14 +8,22 @@ describe('Integration: Config', function () {
     Pjax['resources'].clear();
   });
 
-  describe('rewrite', function () {
+  describe('fetch.rewrite', function () {
     it('', function (done) {
       const url = '/base/test/integration/fixture/basic/1.html';
       const document = parse('').extract();
       new Pjax({
         fetch: {
-          rewrite: path => path.replace('/1.html', '/2.html')
-        }
+          rewrite: url =>
+            FakeXMLHttpRequest.create(
+              url,
+              fetch(url)
+                .then(res => res.text())
+                .then(html =>
+                  new DOMParser().parseFromString(
+                    html.replace(/>(\w+) 1</g, '>$1 2<'),
+                    'text/html'))),
+        },
       }, { document, router })
         .assign(url);
       once(document, 'pjax:ready', () => {

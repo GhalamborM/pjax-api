@@ -9,15 +9,14 @@ describe('Unit: layer/domain/router/module/fetch/xhr', () => {
     it('success', done => {
       xhr(
         RouterEventMethod.GET,
-        new URL(standardize('', window.location.href)),
+        new URL(standardize('#', window.location.href)),
+        new URL(standardize(window.location.href)),
         new Headers(),
         null,
         0,
-        p => p,
-        () => '',
         new Cancellation<Error>())
         .then(m => m.fmap(res => {
-          assert(res.url.href === standardize('', window.location.href));
+          assert(res.url.href === standardize('#', window.location.href));
           assert(res.header('Content-Type') === 'text/html');
           assert(res.document instanceof Document);
           done();
@@ -28,11 +27,10 @@ describe('Unit: layer/domain/router/module/fetch/xhr', () => {
       xhr(
         RouterEventMethod.GET,
         new URL(standardize('?timeout', window.location.href)),
+        new URL(standardize(window.location.href)),
         new Headers(),
         null,
         1,
-        p => p,
-        () => '',
         new Cancellation<Error>())
         .then(m => m.extract(err => {
           assert(err instanceof Error);
@@ -45,11 +43,10 @@ describe('Unit: layer/domain/router/module/fetch/xhr', () => {
       xhr(
         RouterEventMethod.GET,
         new URL(standardize('', window.location.href)),
+        new URL(standardize(window.location.href)),
         new Headers(),
         null,
         0,
-        p => p,
-        () => '',
         new Cancellation<Error>())
         .then(m => m.fmap(() => {
           assert(Date.now() - time > 1000 - 10);
@@ -62,11 +59,10 @@ describe('Unit: layer/domain/router/module/fetch/xhr', () => {
       xhr(
         RouterEventMethod.GET,
         new URL(standardize('', window.location.href)),
+        new URL(standardize(window.location.href)),
         new Headers(),
         null,
         0,
-        p => p,
-        () => '',
         cancellation)
         .then(m => m.extract(err => {
           assert(err instanceof Error);

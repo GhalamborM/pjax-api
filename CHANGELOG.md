@@ -1,5 +1,130 @@
 # Changelog
 
+## 3.44.1
+
+- Fix type errors in dependencies.
+
+## 3.44.0
+
+- Change `logger` to `log` option.
+- Remove `cache` option.
+
+## 3.43.0
+
+- Refine scope option.
+- Add `isolation` option.
+- Extend `fetch.rewrite` option to add cache parameter.
+- Change `X-Pjax` header value to JSON string of `areas` option.
+
+## 3.42.0
+
+- Enhance `link` option to be strict.
+
+## 3.41.1
+
+- Fix dependencies.
+
+## 3.41.0
+
+- Remove `lock` option.
+
+## 3.40.5
+
+- Micro refactoring.
+
+## 3.40.4
+
+- Fix FakeXMLHttpRequest.
+
+## 3.40.3
+
+- Fix FakeXMLHttpRequest.
+
+## 3.40.2
+
+- Fix URL processing.
+
+## 3.40.1
+
+- Fix error handling.
+
+## 3.40.0
+
+- Add FakeXMLHttpRequest.
+- Change `fetch.rewrite` option.
+- Change `update.rewrite` option.
+
+## 3.39.1
+
+- Fix noscript parsing.
+
+## 3.39.0
+
+- Refine `fetch.rewrite` option.
+
+## 3.38.5
+
+- Fix URL processing.
+
+## 3.38.4
+
+- Fix percent-encoding.
+
+## 3.38.3
+
+- Update dependencies.
+
+## 3.38.2
+
+- Update dependencies.
+
+## 3.38.1
+
+- Micro refactoring.
+
+## 3.38.0
+
+- Add `cache` option.
+- Remove `fetch.cache` option.
+- Fix event sequence.
+
+## 3.37.1
+
+- Fix memory processing.
+
+## 3.37.0
+
+- Add `memory` option.
+- Refine `update.rewrite` option.
+
+## 3.36.1
+
+- Update dependencies.
+
+## 3.36.0
+
+- Add `lock` option.
+
+## 3.35.4
+
+- Cover the bug of history.scrollRestoration.
+
+## 3.35.3
+
+- Update dependencies.
+
+## 3.35.2
+
+- Improve area selector splitting.
+
+## 3.35.1
+
+- Update dependencies.
+
+## 3.35.0
+
+- Use webpack.
+
 ## 3.34.0
 
 - Move router function to spica.

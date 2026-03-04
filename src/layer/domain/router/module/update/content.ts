@@ -2,7 +2,8 @@ import { escape } from './script';
 import { AtomicPromise } from 'spica/promise';
 import { Maybe, Just, Nothing} from 'spica/maybe';
 import { push } from 'spica/array';
-import { once } from 'typed-dom';
+import { querySelectorAll } from 'typed-dom/query';
+import { once } from 'typed-dom/listener';
 
 type DocumentRecord = { src: Document; dst: Document; };
 type AreaRecord = { src: HTMLElement[]; dst: HTMLElement[]; };
@@ -30,20 +31,20 @@ export function content(
         dst: area.dst[i]
       }))
       .map(area => (
-        void replace(area),
-        [...area.src.querySelectorAll('img, iframe, frame')]
+        replace(area),
+        querySelectorAll(area.src, 'img, iframe, frame')
           .map(wait)))
       .reduce<AtomicPromise<Event>[]>(push, []);
 
     function replace(area: { src: HTMLElement, dst: HTMLElement; }): void {
       const unescape = [...area.src.querySelectorAll('script')]
         .map(escape)
-        .reduce((f, g) => () => (
-          void f(),
-          void g())
-        , () => void 0);
-      void io.replace(area.src, area.dst);
-      void unescape();
+        .reduce((f, g) => () => {
+          f();
+          g();
+        }, () => undefined);
+      io.replace(area.src, area.dst);
+      unescape();
     }
   }
 }
@@ -62,32 +63,61 @@ export function separate(
     , Nothing)
 
   function sep(documents: DocumentRecord, area: string): Maybe<AreaRecord[]> {
-    return split(area)
+    return Just(split(area))
       .bind(areas =>
         areas.reduce((m, area) =>
           m.bind(acc => {
-            const record = {
-              src: [...documents.src.querySelectorAll<HTMLElement>(area)],
-              dst: [...documents.dst.querySelectorAll<HTMLElement>(area)],
-            };
-            return record.src.length > 0
-                && record.src.length === record.dst.length
-              ? Just(push(acc, [record]))
+            const src = querySelectorAll<HTMLElement>(documents.src, area);
+            const dst = querySelectorAll<HTMLElement>(documents.dst, area);
+            return src.length > 0
+                && src.length === dst.length
+              ? Just(push(acc, [{ src, dst }]))
               : Nothing;
           })
         , Just([])));
   }
 }
 
-function split(area: string): Maybe<string[]> {
-  // eslint-disable-next-line redos/no-vulnerable
-  return (area.match(/(?:[^,\(\[]+|\(.*?\)|\[.*?\])+/g) || [])
-    .map(area => area.trim())
-    .reduce((m, area) =>
-      area
-        ? m.fmap(acc => push(acc, [area]))
-        : Nothing
-    , Just([]));
+function split(selector: string): string[] {
+  const results: string[] = [];
+  const stack: ('(' | '[' | '"')[] = [];
+  const mirror = {
+    ']': '[',
+    ')': '(',
+  } as const;
+  let buffer = '';
+  for (const token of selector.match(/\\.?|[,"()\[\]]|[^\\,"()\[\]]+|$/g)!) {
+    switch (token) {
+      case '':
+        flush();
+        continue;
+      case ',':
+        stack.length === 0
+          ? flush()
+          : buffer += token;
+        continue;
+      case '"':
+        stack[0] === '"'
+          ? stack.shift()
+          : stack.unshift(token);
+        break;
+      case '[':
+      case '(':
+        stack[0] !== '"' && stack.unshift(token);
+        break;
+      case ']':
+      case ')':
+        stack[0] === mirror[token] && stack.shift();
+        break;
+    }
+    buffer += token;
+  }
+  return results;
+
+  function flush(): void {
+    results.push(buffer.trim());
+    buffer = '';
+  }
 }
 export { split as _split }
 

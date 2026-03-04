@@ -24,10 +24,11 @@ jobs:
           restore-keys: ${{ runner.os }}-
       - uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: '16'
       - run: |
           npm install
           xvfb-run --auto-servernum npm test
+          npm run lint
 
   deploy:
     name: Deploy on ${{ matrix.os }}
@@ -47,14 +48,13 @@ jobs:
           restore-keys: ${{ runner.os }}-
       - uses: actions/setup-node@v2
         with:
-          node-version: '12'
+          node-version: '16'
           registry-url: 'https://registry.npmjs.org'
       - run: |
           npm install
-          gulp dist
+          npm run dist
           sed -i 's/"private":\ true/"private":\ false/' package.json
           sed -i -E 's/^dist\/?.*$//' .gitignore
-          cp -r src/* .
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
@@ -77,30 +77,32 @@ jobs:
           restore-keys: ${{ runner.os }}-
       - uses: actions/setup-node@v2
         with:
-          node-version: '12'
+          node-version: '16'
       - run: |
           npm install
-          gulp dist
+          npm run dist
       - run: |
           git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git fetch --depth 9 origin $(git branch --show-current)
           npm i -g json
+          mkdir -p gh-pages/assets
+          mv dist gh-pages/assets
           mkdir ../gh-pages
-          cp -rf ./gh-pages ../
+          mv gh-pages ..
           cat package.json | json version
           NEW_VERSION=$(cat package.json | json version)
           git checkout HEAD~ package.json
           cat package.json | json version
           OLD_VERSION=$(cat package.json | json version)
           git checkout $GITHUB_SHA package.json
-          node -e 'if (!require("semver").gte(process.argv[1], process.argv[2])) process.exit(1)' $NEW_VERSION $OLD_VERSION || travis_terminate 0
+          node -e 'if (!require("semver").gte(process.argv[1], process.argv[2])) process.exit(1)' $NEW_VERSION $OLD_VERSION || exit 0
           git fetch --depth 1 origin gh-pages:gh-pages
-          git checkout --orphan gh-pages || true
-          git checkout -f gh-pages
-          ls -a | grep -vE "^.git$|^\.+$" | xargs rm -rf
-          cp -rf ../gh-pages/* ./
+          git checkout -f gh-pages || git checkout --orphan gh-pages
+          rm -rf *
+          mv ../gh-pages/* .
           find | grep -vE "^./.git(/|$)"
           sed -i 's|\(baseurl:\s\+\)|\1//falsandtru.github.io|' _config.yml
           git add -A
-          git commit -m "Update web contents" || true
+          git diff --staged --exit-code || git commit -m "Update web contents"
           git push origin gh-pages:gh-pages

@@ -10,103 +10,101 @@ class: style-api style-api-detail
 
 ## areas: string[] = `['body']`
 
-Set target areas.
+Target areas.
 
-You can define the multiple targets like `['#header, #primary']`.
-Also, you can define the other candidates of targets like `['#container', 'body']`.
+Multiple areas can be specified as `['#header, #primary']`.
+Multiple candidates can be specified as `['#container', 'body']`.
 
-## link: string = `'a, area'`
+## link: string = `':is(a, area)[href]:not([target])'`
 
-Set target links.
+Target links.
 
 ## filter: (el: HTMLAnchorElement | HTMLAreaElement) => boolean = ...
 
 Filter target links.
 
 ```ts
-  // default
+  // Default
   public filter(el: HTMLAnchorElement | HTMLAreaElement): boolean {
-    return el.matches('[href]:not([target])');
+    return true;
   }
 ```
 
 ## form: string = `'form:not([method])'`
 
-Set target forms.
+Target forms.
 
 ## replace: string = `''`
 
-Set target links that will replace the current URL.
+Target links that replace the current URL.
+
+## memory?: Dict<string, Document>
+
+Dictionary or cache object having has/get/set/delete methods of Map to pass the document object matching the URL to the rewrite functions.
 
 ## fetch: {...} = ...
 
-### rewrite: (path: string) => string = `path => path`
+### rewrite?: (url: string, method: string, headers: Headers, timeout: number, body: FormData | null, memory?: Document) => XMLHttpRequest | undefined
 
-Rewrite URL implicitly.
-
-### cache: (path: string, headers: Headers) => string = `() => ''`
-
-Give a key of the request cache.
-If you return empty string, the current request won't use or make the cache.
-This option is only enabled with GET method.
-Note that from caches with shared keys you can't get the actual URLs redirected on servers.
+Rewrite the XHR object, or replace it with another or fake.
 
 ### timeout: number = `3000`
 
-Set timeout for request by ms.
+Timeout value of requests by ms.
 
 ### wait: number = `0`
 
-Wait specified milliseconds after sending a request.
+Minimum time by ms required for requests.
 
 ## update: {...} = ...
 
-### rewrite: (doc: Document, area: string) => void = `() => undefined`
+### rewrite?: (url: string, document: Document, area: string, memory?: Document) => void
 
-Rewrite a source document object.
+Rewrite the source document object.
 If you use the sequence option, you should use only it instead of this.
 
 ### head: string = `'base, meta, link'`
 
-Set sync targets in head element. Only support `base`, `meta`, and `link` tags.
+Sync targets in the head element. Only support `base`, `meta`, and `link` tags.
 
 ### css: boolean = `true`
 
-Switch css auto sync.
+CSS auto sync.
 
 ### script: boolean = `true`
 
-Switch script auto load.
+Script auto load.
 
-External scripts will be run once per URL.
-Inline scripts will be run everytime.
+External scripts run once per their source URL.
+Inline scripts run every transition.
 
 ### ignore: string = `''`
 
-Set ignore targets for head, css and script.
-Another, the following internal defaults will also be applied.
+Ignore targets from head children, CSS, and scripts.
+The next internal defaults are also applied.
 
 ```ts
-({
-  extension: '[href^="chrome-extension://"]',
-  security: '[src*=".scr.kaspersky-labs.com/"]',
-})
+  // Default
+    ignores: {
+      extension: '[href^="chrome-extension://"]',
+      security: '[src*=".scr.kaspersky-labs.com/"]',
+    },
 ```
 
 ### reload: string = `''`
 
-Set reload targets for script.
+Reload targets of scripts.
 
-### logger: string = `''`
+### log: string = `''`
 
-Set logging targets for script.
+Log targets of scripts.
 
 ## fallback: (target: HTMLAnchorElement | HTMLAreaElement | HTMLFormElement | Window, reason: unknown) => void = ...
 
-Override a fallback processing.
+Fallback processing.
 
 ```ts
-  // default
+  // Default
   public fallback(target: HTMLAnchorElement | HTMLAreaElement | HTMLFormElement | Window, reason: unknown): void {
     if (target instanceof HTMLAnchorElement || target instanceof HTMLAreaElement) {
       return void window.location.assign(target.href);
@@ -123,9 +121,9 @@ Override a fallback processing.
 
 ## sequence: Sequence<a, b, c, d> = ...
 
-Control the page routing sequence.
-It can integrate and synchronize other async processes.
-All methods are required, not optional.
+Control the transition sequence.
+It integrates and synchronizes other async processes.
+All the methods must be defined, not optional.
 
 ```ts
 const sequence: Sequence<1, 2, 3, 4> = {
@@ -158,23 +156,27 @@ const sequence: Sequence<1, 2, 3, 4> = {
 
 ## scope: Record<string, Config | undefined> = `{}`
 
-Override default configs without `link`, `filter`, `form`, and `replace` by merging, or disable pjax per path of URL.
-You can use `{}`, `*`, and `?` metacharacters for path matching.
+Override the default configs, or disable pjax.
+`{}`, `**`, `*`, and `?` metacharacters are available for path matching.
 
 ```ts
 new Pjax({
   areas: [
-    '#header, #primary',
     '#container',
     'body'
   ],
   scope: {
-    '/': undefined, // disable
-    '/posts/': {}, // enable
-    '/posts/*/': {
-      replace: '.replace' // override
+    '/': {}, // Enable.
+    '/form': undefined, // Disable.
+    '/posts': {
+      replace: '.replace' // Override.
     },
-    '/{a,b}/': {} // expand to '/a/' and '/b/'
+    '/search': { isolation: true }, // Disable inter-scope transitions.
+    '/{a,b}/': {} // Expand to '/a/' and '/b/'.
   }
 });
 ```
+
+## isolation: boolean = `false`
+
+Disable inter-scope transitions.

@@ -1,6 +1,6 @@
 ---
 layout: layout
-title: PJAX
+title: PJAX - The advanced PJAX superior to SPA.
 type: index
 class: style-top
 ---
@@ -10,15 +10,34 @@ class: style-top
 <div class="row">
 
 <div class="col-md-4">
-## Feature
+## Features
 
-- <a href="{{ site.basepath }}demo/basic/1.html" target="_blank">Basic</a>
-	- Multiple area update
-	- Fallback area matching
-	- CSS markless auto sync
-	- Script markless auto load
-	- [more](https://github.com/falsandtru/pjax-api#feature)
-- Concurrency integration
+The pjax-api provides almost complete original web experience.
+
+- Browser history fix
+- Scroll position restoration
+- Unexpected scroll prevention
+- Scroll behaviors around hash links
+- [**SPA on Pjax (Use JSON instead of HTML)**]({{ site.basepath }}docs/modes/#json-spa)
+- [More](https://github.com/falsandtru/pjax-api#features)
+</div>
+
+<div class="col-md-4">
+## Modes
+
+**Adding JSON APIs is the only change required on servers to enable *SPA on Pjax*.**
+
+JSON(SPA) mode is statically and dynamically configurable per URL scope on browsers.
+
+- [None (Offline)]({{ site.basepath }}docs/modes/#none-offline)
+  - Send no requests.
+- [HTML (Pjax)]({{ site.basepath }}docs/modes/#html-pjax)
+  - Request an HTML response.
+- [JSON (SPA)]({{ site.basepath }}docs/modes/#json-spa)
+  - Request a JSON response.
+- Any
+  - Any response types are available in the same way as JSON.
+- [More](https://github.com/falsandtru/pjax-api#properties)
 </div>
 
 <div class="col-md-4">
@@ -33,13 +52,14 @@ class: style-top
 // config.js
 import Pjax from 'pjax-api';
 // or
-const { Pjax } = require('pjax-api');
+const { Pjax } = window['pjax-api'];
 
 new Pjax({
   areas: [
     // Try the first query.
     '#header, #primary',
-    // Retry with the second query when the first query doesn't match.
+    // Retry using the second query
+    // if the first query doesn't match.
     '#container',
     // Retry.
     'body'
@@ -48,24 +68,25 @@ new Pjax({
 ```
 </div>
 
-<div class="col-md-4">
-## API
-
-[API]({{ site.basepath }}api/)
-
-- [Pjax]({{ site.basepath }}api/pjax/)
-- [Event]({{ site.basepath }}api/event/)
-- [Router]({{ site.basepath }}api/router/)
-</div>
-
 </div>
 
 <div class="row">
 
 <div class="col-md-4">
-## Browser
+## Documents
 
-Requires es6 support.
+This site is also powered by PJAX as a demo. Try page transitions.
+
+- [APIs]({{ site.basepath }}docs/apis/)
+  - [Pjax]({{ site.basepath }}docs/apis/pjax/)
+    - [Config]({{ site.basepath }}docs/apis/pjax/config/)
+  - [Events]({{ site.basepath }}docs/apis/events/)
+  - [Util]({{ site.basepath }}docs/apis/util/)
+- [Modes]({{ site.basepath }}docs/modes/)
+</div>
+
+<div class="col-md-4">
+## Browsers
 
 - Chrome
 - Firefox

@@ -1,6 +1,6 @@
 import { RouterEntity } from '../model/eav/entity';
-import { RouterEventLocation } from '../../event/router';
-import { FetchResponse } from '../model/eav/value/fetch';
+import { RouterEventType, RouterEventLocation } from '../../event/router';
+import { Response } from '../model/eav/value/fetch';
 import { blur } from '../module/update/blur';
 import { url } from '../module/update/url';
 import { title } from '../module/update/title';
@@ -21,8 +21,8 @@ export function update(
     config,
     state,
   }: RouterEntity,
-  response: FetchResponse,
-  seq: 'fetch',
+  response: Response,
+  seq: 'seq:fetch',
   io: {
     document: Document;
     position: () => { top: number; left: number; };
@@ -35,78 +35,92 @@ export function update(
   };
   return AtomicPromise.resolve(seq)
     .then(process.either)
+    .then(m => m
+      .bind(() =>
+        separate(documents, config.areas)
+          .extract(
+            () => Left(new Error(`Failed to separate the areas`)),
+            () => m)))
+    .then(m => m
+      .bind(seqA =>
+        separate(documents, config.areas)
+          .fmap(([area]) =>
+            [seqA, area] as const)
+          .extract(
+            () => Left(new Error(`Failed to separate the areas`)),
+            process.either))
+      .fmap(([seqB, area]) => {
+        const memory = event.type === RouterEventType.Popstate
+          ? config.memory?.get(event.location.dest.path)
+          : undefined;
+        config.update.rewrite?.(
+          event.location.dest.href,
+          documents.src,
+          area,
+          memory);
+        return seqB;
+      })
+      .bind(seqB =>
+        separate(documents, config.areas)
+          .fmap(([, areas]) =>
+            [seqB, areas] as const)
+          .extract(
+            () => Left(new Error(`Failed to separate the areas`)),
+            process.either)))
     // fetch -> unload
     .then(m => m
       .bind(() =>
         separate(documents, config.areas)
           .extract(
-            () => Left(new Error(`Failed to separate the areas.`)),
+            () => Left(new Error(`Failed to separate the areas`)),
             () => m))
-      .fmap(seqA => (
-        void window.dispatchEvent(new Event('pjax:unload')),
-        config.sequence.unload(seqA, { ...response, url: response.url.href }))))
+      .fmap(async ([seqA, areas]) => {
+        const seqB = await config.sequence.unload(seqA, { ...response, url: response.url.href });
+        window.dispatchEvent(new Event('pjax:unload'));
+        return [seqB, areas] as const;
+      }))
     .then(m => Either.sequence(m))
-    .then(process.promise)
-    .then(m => m
-        .bind(seqB =>
-          separate(documents, config.areas)
-            .fmap(([area]) =>
-              [seqB, area] as const)
-            .extract(
-              () => Left(new Error(`Failed to separate the areas.`)),
-              process.either))
-        .bind(([seqB, area]) => (
-          void config.update.rewrite(documents.src, area),
-          separate(documents, config.areas)
-            .fmap(([, areas]) =>
-              [seqB, areas] as const)
-            .extract(
-              () => Left(new Error(`Failed to separate the areas.`)),
-              process.either))))
     .then(process.promise)
     // unload -> ready
     .then(m => m
       .fmap(([seqB, areas]) =>
         HList()
           .add((
-            void blur(documents.dst),
-            void savePjax(),
-            void url(
-              new RouterEventLocation(response.url),
+            blur(documents.dst),
+            savePjax(),
+            url(
+              new RouterEventLocation(event.location.orig, response.url),
               documents.src.title,
               event.type,
               event.source,
               config.replace),
-            void savePjax(),
-            void title(documents),
-            void saveTitle(),
-            void head(documents, config.update.head, config.update.ignore),
+            savePjax(),
+            title(documents),
+            saveTitle(),
+            head(documents, config.update.head, config.update.ignore),
             process.either(content(documents, areas))
               .fmap(([as, ps]) =>
                 [as, AtomicPromise.all(ps)] as const)))
           .unfold(async p => (await p)
             .fmap(async ([areas]) => {
-              config.update.css
-                ? void css(documents, config.update.ignore)
-                : void 0;
-              void io.document.dispatchEvent(new Event('pjax:content'));
+              config.update.css && css(documents, config.update.ignore);
               const seqC = await config.sequence.content(seqB, areas);
-              const ssm = config.update.script
-                ? await script(documents, state.scripts, config.update, Math.max(config.fetch.timeout, 1000) * 10, process)
-                : await process.either<[HTMLScriptElement[], AtomicPromise<Either<Error, HTMLScriptElement[]>>]>([[], AtomicPromise.resolve(process.either([]))]);
-              void focus(event.type, documents.dst);
-              void scroll(event.type, documents.dst, {
+              io.document.dispatchEvent(new Event('pjax:content'));
+              const [p] = config.update.script
+                ? await script(documents, state.scripts, config.update, config.fetch.timeout * 10, process)
+                : [AtomicPromise.resolve(process.either<[HTMLScriptElement[], AtomicPromise<Either<Error, HTMLScriptElement[]>>]>([[], AtomicPromise.resolve(process.either([]))]))] as const;
+              focus(event.type, documents.dst);
+              scroll(event.type, documents.dst, {
                 hash: event.location.dest.fragment,
                 position: io.position,
               });
-              void savePosition();
-              void io.document.dispatchEvent(new Event('pjax:ready'));
-              return [
-                ssm
-                  .fmap(([ss, ap]) =>
-                    [ss, ap.then(m => m.extract())] as const),
+              savePosition();
+              return p.then(async ssm => [
+                ssm.fmap(([ss, ap]) =>
+                  [ss, ap.then(m => m.extract())] as const),
                 await config.sequence.ready(seqC),
-              ] as const;
+                io.document.dispatchEvent(new Event('pjax:ready')),
+              ] as const);
             })
             .fmap(p =>
               p.then(([m, seqD]) =>
@@ -117,22 +131,22 @@ export function update(
     .then(process.promise)
     // ready -> load
     .then(m => m
-      .fmap(([p1, p2]) => (
+      .fmap(([p1, p2]) => {
+        // Asynchronously wait for load completion of elements and scripts.
         void AtomicPromise.all([p1, p2])
           .then<void>(([m1, m2]) =>
             m1.bind(([, cp]) =>
               m2.fmap(([[, sp], seqD]) =>
-                // Asynchronously wait for load completion of elements and scripts.
-                void AtomicPromise.all([cp, sp])
+                AtomicPromise.all([cp, sp])
                   .then(process.either)
                   .then(m => m
-                    .fmap(([events]) => (
-                      void window.dispatchEvent(new Event('pjax:load')),
-                      void config.sequence.load(seqD, events)))
-                    .extract(() => void 0))))
-              .extract(() => void 0)),
-        p2)))
+                    .fmap(async ([events]) => (
+                      await config.sequence.load(seqD, events),
+                      void window.dispatchEvent(new Event('pjax:load'))))
+                    .extract(() => undefined))))
+              .extract(() => undefined));
+        return p2;
+      }))
     .then(m => Either.sequence(m).then(m => m.join()))
-    .then(m => m
-      .fmap(([sst]) => sst));
+    .then(m => m.fmap(([sst]) => sst));
 }

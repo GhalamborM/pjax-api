@@ -7,7 +7,7 @@
   <meta name="robots" content="noarchive">
 
   {% if page.type == "index" %}
-  <title>{{ site.title }}</title>
+  <title>{{ page.title }}</title>
   {% else %}
   <title>{{ page.title }} | {{ site.title }}</title>
   {% endif %}
@@ -15,7 +15,6 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
   <link href="{{ site.basepath }}assets/css/syntax.css" rel="stylesheet">
   <link href="{{ site.basepath }}assets/css/style.css" rel="stylesheet">
-  <link href='//fonts.googleapis.com/css?family=Roboto:400' rel='stylesheet' type='text/css'>
 </head>
 <body>
   <noscript><p class="browsehappy warning">Please enable <strong>JavaScript</strong></p></noscript>
@@ -69,10 +68,9 @@
 
   </div>
 
-  <script src="https://cdn.polyfill.io/v3/polyfill.js?flags=gated&features=default"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-  <script src="{{ site.basepath }}assets/js/lib/pjax-api.js"></script>
+  <script src="{{ site.basepath }}assets/dist/index.js"></script>
   <script src="{{ site.basepath }}assets/js/config.js"></script>
 
   <script>

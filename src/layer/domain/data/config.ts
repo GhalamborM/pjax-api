@@ -1,63 +1,51 @@
-import { DeepRequired } from 'spica/type';
-import { ObjectDefineProperties, ObjectFreeze, ObjectKeys } from 'spica/alias';
-import { Config as Option, Sequence as ISequence } from '../../../../';
+import { Config as Options, Sequence as ISequence } from '../../../../';
+import { Dict } from 'spica/dict';
 import { URL, StandardURL } from 'spica/url';
 import { extend, overwrite } from 'spica/assign';
 
 export { scope } from './config/scope';
 
-export class Config implements DeepRequired<Option, Config['scope']> {
-  constructor(option: Option) {
-    void ObjectDefineProperties(this.update, {
-      ignore: {
-        enumerable: false,
-        set(this: Config['update'], value: string) {
-          this.ignores['_'] = value;
-        },
-        get(this: Config['update']): string {
-          return ObjectKeys(this.ignores)
-            .map(i => this.ignores[i])
-            .filter(s => s.trim().length > 0)
-            .join(',');
-        },
-      },
-    });
-    void extend(this, option);
-    void overwrite(this.scope, option?.scope ?? {});
-    this.fetch.headers = new Headers(this.fetch.headers);
-    void ObjectFreeze(this);
-    void this.fetch.headers.set('X-Requested-With', 'XMLHttpRequest');
-    void this.fetch.headers.set('X-Pjax', '1');
+export class Config implements Options {
+  constructor(options: Options) {
+    extend<Options>(this, options);
+    this.update.ignores.$ ??= options.update?.ignore ?? '';
+    this.update.ignore = Object.values(this.update.ignores).filter(s => s).join(',');
+    overwrite(this.scope, options?.scope ?? {});
+    Object.freeze(this);
+    Object.freeze(this.fetch);
+    Object.freeze(this.update);
   }
   public readonly areas = ['body'];
-  public readonly link = 'a, area';
-  public filter(el: HTMLAnchorElement | HTMLAreaElement): boolean {
-    return el.matches('[href]:not([target])');
+  public readonly link = ':is(a, area)[href]:not([target])';
+  public filter(_el: HTMLAnchorElement | HTMLAreaElement): boolean {
+    return true;
   }
   public readonly form = 'form:not([method])';
   public readonly replace = '';
+  public readonly memory?: Dict<URL.Path<StandardURL>, Document> = undefined;
   public readonly fetch = {
-    rewrite: (path: URL.Path<StandardURL>): string => path,
-    cache: (_path: URL.Path<StandardURL>, _headers: Headers): string => '',
+    rewrite: undefined as NonNullable<Options['fetch']>['rewrite'],
     headers: new Headers(),
     timeout: 3000,
     wait: 0,
   };
   public readonly update = {
-    rewrite: (_doc: Document, _area: string): void => undefined,
+    rewrite: undefined as NonNullable<Options['update']>['rewrite'],
     head: 'base, meta, link',
     css: true,
     script: true,
     ignore: '',
-    ignores: <{ [index: string]: string; }>{
+    ignores: {
+      $: undefined as string | undefined,
       extension: '[href^="chrome-extension://"]',
       security: '[src*=".scr.kaspersky-labs.com/"]',
     },
     reload: '',
-    logger: '',
+    log: '',
   };
   public fallback(target: HTMLAnchorElement | HTMLAreaElement | HTMLFormElement | Window, reason: unknown): void {
-    if (target instanceof HTMLAnchorElement) {
+    if (target instanceof HTMLAnchorElement ||
+        target instanceof HTMLAreaElement) {
       return void window.location.assign(target.href);
     }
     if (target instanceof HTMLFormElement) {
@@ -68,24 +56,24 @@ export class Config implements DeepRequired<Option, Config['scope']> {
     }
     throw reason;
   }
-  public readonly sequence: ISequence<'fetch', 'unload', 'content', 'ready'> = new Sequence();
-  public readonly progressbar: string = 'display:none;position:absolute;bottom:0;left:0;width:0;height:2px;background:rgb(40, 105, 255);';
-  public readonly scope: Record<string, Option | undefined> = {};
+  public readonly sequence: ISequence<'seq:fetch', 'seq:unload', 'seq:content', 'seq:ready'> = new Sequence();
+  public readonly scope: Record<string, Options | undefined> = {};
+  public readonly isolation: boolean = false;
 }
 
-class Sequence implements ISequence<'fetch', 'unload', 'content', 'ready'> {
-  public async fetch(): Promise<'fetch'> {
-    return 'fetch';
+class Sequence implements ISequence<'seq:fetch', 'seq:unload', 'seq:content', 'seq:ready'> {
+  public async fetch() {
+    return 'seq:fetch' as const;
   }
-  public async unload(): Promise<'unload'> {
-    return 'unload';
+  public async unload() {
+    return 'seq:unload' as const;
   }
-  public async content(): Promise<'content'> {
-    return 'content';
+  public async content() {
+    return 'seq:content' as const;
   }
-  public async ready(): Promise<'ready'> {
-    return 'ready';
+  public async ready() {
+    return 'seq:ready' as const;
   }
-  public async load(): Promise<void> {
+  public async load() {
   }
 }

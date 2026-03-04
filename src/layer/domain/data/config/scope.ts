@@ -1,34 +1,34 @@
-import { ObjectKeys } from 'spica/alias';
-import { Config as Option } from '../../../../../';
+import { Config as Options } from '../../../../../';
 import { Config } from '../../../domain/data/config';
-import { compare } from 'spica/router';
+import { router } from 'spica/router';
 import { URL, StandardURL } from 'spica/url';
-import { Sequence } from 'spica/sequence';
 import { Maybe, Just, Nothing } from 'spica/maybe';
 import { extend, overwrite } from 'spica/assign';
 
+const { match } = router.helpers();
+
 export function scope(
-  config: Config,
+  options: Options,
   path: {
     orig: URL.Pathname<StandardURL>;
     dest: URL.Pathname<StandardURL>;
   }
 ): Maybe<Config> {
-  const scope = { '/': {}, ...config.scope };
-  return Sequence.from(ObjectKeys(scope).sort().reverse())
-    .dropWhile(pattern =>
-      !! !compare(pattern, path.orig)
-      && !compare(pattern, path.dest))
-    .take(1)
-    .filter(pattern =>
-      !! compare(pattern, path.orig)
-      && compare(pattern, path.dest))
-    .map<Option | undefined>(pattern => scope[pattern])
-    .map<Maybe<Config>>(option =>
-      option
-        ? Just(new Config(extend({
-            scope: option.scope && overwrite(config.scope, option.scope)
-          }, config, option)))
-        : Nothing)
-    .extract()[0] ?? Nothing;
+  const record = { '/': {}, ...options.scope };
+  for (const pattern of Object.keys(record).reverse()) {
+    const opts: Options | undefined = record[pattern];
+    switch (+match(pattern, path.orig) + +match(pattern, path.dest)) {
+      case 0:
+        continue;
+      case 1:
+        if (opts === undefined || opts.isolation) return Nothing;
+        continue;
+    }
+    return opts
+      ? opts.scope
+        ? scope(overwrite({}, { ...options, scope: undefined }, opts), path)
+        : Just(new Config({ ...extend({}, options, opts), scope: undefined }))
+      : Nothing;
+  }
+  return Nothing;
 }

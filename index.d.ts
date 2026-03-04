@@ -1,3 +1,5 @@
+import { Dict } from 'spica/dict';
+
 export default Pjax;
 
 export class Pjax {
@@ -6,11 +8,7 @@ export class Pjax {
   static sync(isPjaxPage?: boolean): void;
   static pushURL(url: string, title: string, state?: any): void;
   static replaceURL(url: string, title: string, state?: any): void;
-  constructor(
-    config: Config,
-    io?: {
-      document: Document;
-    });
+  constructor(config: Config);
   assign(url: string): boolean;
   replace(url: string): boolean;
 }
@@ -21,25 +19,26 @@ export interface Config {
   readonly filter?: (el: HTMLAnchorElement | HTMLAreaElement) => boolean;
   readonly form?: string;
   readonly replace?: string;
+  readonly memory?: Dict<string, Document>;
   readonly fetch?: {
-    readonly rewrite?: (path: string) => string;
-    readonly cache?: (path: string, headers: Headers) => string;
+    readonly rewrite?: (url: string, method: string, headers: Headers, timeout: number, body: FormData | null, memory?: Document) => XMLHttpRequest | undefined;
     readonly headers?: Headers;
     readonly timeout?: number;
     readonly wait?: number;
   };
   readonly update?: {
-    readonly rewrite?: (doc: Document, area: string) => void;
+    readonly rewrite?: (url: string, document: Document, area: string, memory?: Document) => void;
     readonly head?: string;
     readonly css?: boolean;
     readonly script?: boolean;
     readonly ignore?: string;
     readonly reload?: string;
-    readonly logger?: string;
+    readonly log?: string;
   };
   readonly fallback?: (target: HTMLAnchorElement | HTMLAreaElement | HTMLFormElement | Window, reason: unknown) => void;
   readonly sequence?: Sequence<any, any, any, any>;
   readonly scope?: Record<string, Config | undefined>;
+  readonly isolation?: boolean;
 }
 
 export interface Sequence<a, b, c, d> {
@@ -62,4 +61,8 @@ declare global {
     'pjax:ready': Event;
   }
 
+}
+
+export class FakeXMLHttpRequest extends XMLHttpRequest {
+  public static create(url: string, response: Document | PromiseLike<Document>): FakeXMLHttpRequest;
 }

@@ -1,5 +1,5 @@
 import { Coroutine } from 'spica/coroutine';
-import { delegate } from 'typed-dom';
+import { delegate } from 'typed-dom/listener';
 
 export class ClickView extends Coroutine<never> {
   constructor(
@@ -10,8 +10,9 @@ export class ClickView extends Coroutine<never> {
     super(async function* () {
       return this.finally(delegate(document, selector, 'click', ev => {
         if (!(ev.currentTarget instanceof HTMLAnchorElement || ev.currentTarget instanceof HTMLAreaElement)) return;
+        if (!ev.currentTarget.matches(selector)) return;
         assert(typeof ev.currentTarget.href === 'string');
-        void listener(ev);
+        listener(ev);
       }));
     }, { delay: false });
   }
